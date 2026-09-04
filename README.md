@@ -12,11 +12,12 @@ It was built to recover a Priam 3450 pulled from an Intel Multibus development
 system (iSBC 215 controller, iRMX-86), and has imaged that drive in full. The
 name: Hecuba was queen of Troy and wife of Priam.
 
-## Attention data preservationists
-If you have one or more Priam drives you'd like to preserve, reach out to me
-at <jeff@flitton.dev> and I can send you one of the handful of boards I've
-produced thus far.  I'm also happy to assist with data recovery and am happy
-to answer your questions!
+## For data preservationists
+
+If you have a Priam DISKOS 8-inch drive (a 3450, or likely a 7050) whose
+contents you want to archive, email <jeff@flitton.dev>. I have a handful of
+assembled Hecuba boards and can send you one. I am also glad to help with the
+imaging and recovery, and to answer questions about the drive or its interface.
 
 ## Layout
 
