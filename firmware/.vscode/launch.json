@@ -1,0 +1,39 @@
+{
+    // SWD debugging requires a probe (official Debug Probe, or a spare Pico
+    // flashed as `debugprobe_on_pico`). Wire probe GP2->SWCLK, GP3->SWDIO,
+    // GND->GND to the Pico 2 W's 3-pin debug header.
+    //
+    // Until a probe is attached, you don't need this: build the .uf2, flash via
+    // BOOTSEL drag-drop (or `picotool load`), and use the USB serial console.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Pico 2 W Debug (SWD via probe)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/hecuba.elf",
+            "gdbPath": "arm-none-eabi-gdb",
+            "device": "RP2350",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/rp2350.cfg"
+            ],
+            "openOCDLaunchCommands": [
+                "adapter speed 5000"
+            ],
+            "svdFile": "${env:PICO_SDK_PATH}/src/rp2350/hardware_regs/RP2350.svd",
+            "runToEntryPoint": "main",
+            // RTT logging over SWD (no spare UART; avoids USB-stack contention
+            // with the capture core). Enable pico_enable_stdio_rtt in CMake too.
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    { "port": 0, "type": "console" }
+                ]
+            }
+        }
+    ]
+}

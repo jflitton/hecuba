@@ -1,0 +1,4 @@
+*.lck
+*.bak
+.history
+*.net

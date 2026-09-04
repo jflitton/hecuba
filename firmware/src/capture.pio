@@ -1,0 +1,26 @@
+; capture.pio - clocked whole-track READ DATA sampler (CORE-2, CAP-1/CAP-2).
+;
+; Samples the recovered NRZ READ DATA on each active edge of the drive's
+; recovered READ/REF CLOCK, never on a local clock. The SM follows the external
+; clock, so there is no overrun path; autopush hands each 32-bit word to DMA.
+;
+; Pin setup (done in capture.c):
+;   * IN pin base = PIN_READ_DATA (GP22)  -> `in pins, 1` samples READ DATA.
+;   * READ/REF CLOCK is read by absolute `wait gpio` (CAPTURE_CLK_GPIO below).
+;   * autopush threshold 32, shift_right => first-sampled bit lands in bit 0 of
+;     the word, last in bit 31 (decoder must know this ordering).
+
+.program capture
+.define PUBLIC CAPTURE_CLK_GPIO 21      ; must equal PIN_READ_REF_CLK (asserted in capture.c)
+
+.wrap_target
+    wait 1 gpio CAPTURE_CLK_GPIO        ; ensure clock is high...
+    wait 0 gpio CAPTURE_CLK_GPIO        ; ...then catch the FALLING edge
+    in pins, 1                          ; shift one READ DATA bit into ISR (autopush@32 -> DMA)
+.wrap
+
+; SAMPLING EDGE (CORE-2 bench TODO, resolved 2026-08-13): rising-edge sampling
+; produced deterministic transition-adjacent errors; every corrupted bit was a
+; 0-after-1 reading as 1 (data transitions after the rising edge; we sampled the
+; old level). Errors were per-sector-deterministic (write-splice phase), which
+; masqueraded as "fixed bad media regions". Falling edge samples mid-cell.

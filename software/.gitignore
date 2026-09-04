@@ -1,0 +1,7 @@
+*.log
+image/
+*.img
+*.zip
+*.missing.json
+filetree.txt
+__pycache__/

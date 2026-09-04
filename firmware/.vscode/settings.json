@@ -1,0 +1,20 @@
+{
+    // The Raspberry Pi Pico extension owns CMake configuration; don't let the
+    // generic CMake Tools extension fight it.
+    "cmake.configureOnOpen": false,
+    "cmake.automaticReconfigure": false,
+    "cmake.configureOnEdit": false,
+
+    "C_Cpp.default.compilerPath": "",
+    "files.associations": {
+        "*.pio": "asm",
+        "*.h": "c",
+        "*.c": "c"
+    },
+
+    // The extension writes the SDK/toolchain versions here on first import,
+    // e.g. "raspberry-pi-pico.cmakeAutoConfigure": true. Left minimal so the
+    // extension can fill machine-specific values.
+    "raspberry-pi-pico.cmakeAutoConfigure": true,
+    "raspberry-pi-pico.useCmakeTools": false
+}
