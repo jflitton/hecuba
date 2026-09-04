@@ -74,6 +74,20 @@ and `software/sweep.py`; the `id` command also expects the 3450's ID code.
 
 No disk contents are part of this repository.
 
+## License
+
+The firmware and software are released under the MIT License, see
+[LICENSE](LICENSE). The hardware design under `hardware/` is released under the
+CERN Open Hardware Licence Version 2, Permissive (CERN-OHL-P-2.0), see
+[hardware/LICENSE](hardware/LICENSE).
+
+Both licenses allow commercial use, and both require that the copyright notice
+and license text stay with copies and derived works. Both disclaim all
+warranties: the software, the firmware, the design files, and any board built
+from them are provided as is, and the risk of building and using them is
+yours. Vendor symbol and footprint files under `hardware/lib/` are Texas
+Instruments' and are not covered by either license.
+
 ## Reference documents
 
 - [Priam 8-inch Winchester maintenance manual, July 1982](https://bitsavers.org/pdf/priam/Priam8_Maint_Jul82.pdf),

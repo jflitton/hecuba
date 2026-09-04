@@ -163,3 +163,14 @@ protected in hardware (R29).
 | `bom/ibom.html` | Interactive BOM |
 
 `.gitignore` covers KiCad backups and netlist output.
+
+## License
+
+CERN Open Hardware Licence Version 2, Permissive (CERN-OHL-P-2.0). The full
+text is in [LICENSE](LICENSE). Keep the copyright and license notices with any
+copy or derivative of the design files, and on boards where practicable (the
+silkscreen already carries the author line). The design is provided as is, with
+no warranty, and the risk of building and using a board from it is yours.
+
+Files under `lib/<PART>/` are Texas Instruments vendor downloads under TI's own
+terms and are not covered by this license.
