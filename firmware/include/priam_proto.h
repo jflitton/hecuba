@@ -32,15 +32,16 @@ typedef enum {
 } priam_cmd_t;
 
 // ---- Status Register bits. §6.3, Table 3-19 ---------------------------------
-// Note bits 1 (SEEK COMPLETE) and 2 (SEEK fault) are invalid while BUSY is set.
+// Note bits 1 (SEEK COMPLETE), 2 (SEEK fault), 3 (CYLINDER ZERO) and
+// 7 (COMMAND REJECT) are invalid while BUSY is set.
 #define PRIAM_ST_READY         (1u << 0)  // up to speed, servo locked
 #define PRIAM_ST_SEEK_COMPLETE (1u << 1)  // seek finished (invalid while BUSY)
 #define PRIAM_ST_SEEK_FAULT    (1u << 2)  // fault during a seek (invalid while BUSY)
-#define PRIAM_ST_CYL_ZERO      (1u << 3)  // carriage at cylinder 0
+#define PRIAM_ST_CYL_ZERO      (1u << 3)  // carriage at cylinder 0 (invalid while BUSY)
 #define PRIAM_ST_BUSY          (1u << 4)  // executing a command
 #define PRIAM_ST_DRIVE_FAULT   (1u << 5)  // fault during write / unsafe condition
 #define PRIAM_ST_WRITE_PROTECT (1u << 6)  // selected head write-protected
-#define PRIAM_ST_COMMAND_REJECT (1u << 7) // wrote register while !READY, or invalid cmd
+#define PRIAM_ST_COMMAND_REJECT (1u << 7) // wrote register while !READY, or invalid cmd (invalid while BUSY)
 
 // ---- Geometry / addressing. §0, §6 ------------------------------------------
 #define PRIAM_NUM_CYLINDERS    525u    // valid cylinders 0..524
