@@ -39,4 +39,30 @@ uint32_t capture_run_blocking(void);
 const uint32_t *capture_buffer(void);
 uint32_t        capture_buffer_capacity_words(void);
 
+// ---- Per-field -READ GATE re-sync ------------------------------------------
+// The original controller asserts -READ GATE in the zero gap after each SECTOR
+// MARK and never holds it across a write splice. While a capture is armed,
+// core1 can pulse the gate off/on at each SECTOR MARK (GATING_MARK) and again
+// at a fixed offset after the mark for the ID-to-data gap (GATING_BOTH). The
+// PIO keeps sampling throughout. Settings are read by core1 at capture time.
+typedef enum { GATING_OFF = 0, GATING_MARK = 1, GATING_BOTH = 2 } gating_mode_t;
+
+// drop_us: gate-off pulse at each SECTOR MARK. data_off_us / data_drop_us: start
+// (after the mark) and width of the second pulse that spans the data-field
+// write splice (GATING_BOTH). Defaults 3 / 37 / 11 us, see capture.c.
+void          capture_set_gating(gating_mode_t mode, uint32_t drop_us,
+                                 uint32_t data_off_us, uint32_t data_drop_us);
+gating_mode_t capture_gating_mode(void);
+uint32_t      capture_gating_drop_us(void);
+uint32_t      capture_gating_data_us(void);
+uint32_t      capture_gating_data_drop_us(void);
+const char   *capture_gating_name(gating_mode_t mode);
+// Number of gate off/on pulses issued during the most recent capture window
+// (INDEX wait plus track).
+uint32_t      capture_last_gate_drops(void);
+// Microseconds from the INDEX edge to the first SECTOR MARK of the most recent
+// capture (PRIAM t_IS, 44.6 +/- 1.4 us), or -1 if gating was off. Confirms the
+// mark timing the second pulse is placed against.
+int32_t       capture_last_first_mark_us(void);
+
 #endif // HECUBA_CAPTURE_H

@@ -1,6 +1,6 @@
 ; capture.pio - clocked whole-track READ DATA sampler (CORE-2, CAP-1/CAP-2).
 ;
-; Samples the recovered NRZ READ DATA on each active edge of the drive's
+; Samples the recovered NRZ READ DATA on each FALLING edge of the drive's
 ; recovered READ/REF CLOCK, never on a local clock. The SM follows the external
 ; clock, so there is no overrun path; autopush hands each 32-bit word to DMA.
 ;
@@ -19,8 +19,9 @@
     in pins, 1                          ; shift one READ DATA bit into ISR (autopush@32 -> DMA)
 .wrap
 
-; SAMPLING EDGE (CORE-2 bench TODO, resolved 2026-08-13): rising-edge sampling
-; produced deterministic transition-adjacent errors; every corrupted bit was a
-; 0-after-1 reading as 1 (data transitions after the rising edge; we sampled the
-; old level). Errors were per-sector-deterministic (write-splice phase), which
-; masqueraded as "fixed bad media regions". Falling edge samples mid-cell.
+; SAMPLING EDGE. READ DATA changes shortly after the rising edge of READ/REF
+; CLOCK, so a sample there lands on the transition. The falling edge samples
+; mid-cell.
+;
+; -READ GATE is pulsed off/on per field during a capture (capture.c,
+; gate_service); the PIO keeps sampling throughout.

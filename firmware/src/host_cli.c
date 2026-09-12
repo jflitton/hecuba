@@ -10,6 +10,9 @@
 //   seek <cyl>                seek to cylinder (0..524)
 //   head <0-4>                select data head
 //   gate on|off               assert / deassert -READ GATE
+//   gating [mode [drop] [off] [drop2]]  per-field gate re-sync during capture:
+//                             off | mark | both; pulse at the mark (us); start and
+//                             width of the data-splice pulse (us after the mark)
 //   id                        Read Drive ID
 //   capture <cyl> <head>      seek+select+gate+settle, then capture one track
 //   capraw [head]             capture with NO seek (bench/loopback; optional head)
@@ -51,6 +54,9 @@ static void print_help(void) {
       "  seek <cyl>             seek 0..524\n"
       "  head <0-4>             select head\n"
       "  gate on|off            -READ GATE\n"
+      "  gating [off|mark|both] [drop_us] [data_off_us] [data_drop_us]\n"
+      "                         pulse gate off at each SECTOR MARK (mark), and again\n"
+      "                         across the data-field splice (both, default 3 37 11)\n"
       "  id                     Read Drive ID\n"
       "  capture <cyl> <head>   capture one INDEX-gated track\n"
       "  capraw [head]          capture without seeking (bench)\n"
@@ -86,6 +92,17 @@ static void report_capture(uint32_t words) {
     }
 }
 
+// Capture lines carry "[gating both, N drops, mark0 +NNus]": N counts gate
+// pulses over the INDEX wait plus the track; mark0 is INDEX to first SECTOR
+// MARK in us (PRIAM t_IS spec 44.6 +/- 1.4).
+static void report_gating(void) {
+    gating_mode_t m = capture_gating_mode();
+    if (m != GATING_OFF)
+        printf("[gating %s, %lu drops, mark0 +%ldus] ", capture_gating_name(m),
+               (unsigned long)capture_last_gate_drops(),
+               (long)capture_last_first_mark_us());
+}
+
 static void cmd_capture(uint16_t cyl, uint8_t head) {
     if (capture_ensure_started()) printf("(capture engine started on core1)\n");
     uint8_t st = 0;
@@ -96,7 +113,30 @@ static void cmd_capture(uint16_t cyl, uint8_t head) {
     uint32_t words = capture_run_blocking();
     priam_read_gate(false);
     printf("capture cyl %u head %u: ", cyl, head);
+    report_gating();
     report_capture(words);
+}
+
+static void cmd_gating(char *mode, char *drop, char *off, char *drop2) {
+    if (mode) {
+        gating_mode_t m;
+        if      (!strcmp(mode, "off"))  m = GATING_OFF;
+        else if (!strcmp(mode, "mark")) m = GATING_MARK;
+        else if (!strcmp(mode, "both")) m = GATING_BOTH;
+        else { printf("usage: gating [off|mark|both] [drop_us] [data_off_us] [data_drop_us]\n"); return; }
+        uint32_t d  = drop  ? (uint32_t)strtoul(drop,  NULL, 10) : capture_gating_drop_us();
+        uint32_t o  = off   ? (uint32_t)strtoul(off,   NULL, 10) : capture_gating_data_us();
+        uint32_t d2 = drop2 ? (uint32_t)strtoul(drop2, NULL, 10) : capture_gating_data_drop_us();
+        capture_set_gating(m, d, o, d2);
+    }
+    printf("gating %s: drop %lu us at each SECTOR MARK",
+           capture_gating_name(capture_gating_mode()),
+           (unsigned long)capture_gating_drop_us());
+    if (capture_gating_mode() == GATING_BOTH)
+        printf(" and %lu us from %lu us after it",
+               (unsigned long)capture_gating_data_drop_us(),
+               (unsigned long)capture_gating_data_us());
+    printf("\n");
 }
 
 // Capture with no seek and no status checks: the raw gate+PIO+DMA path, for
@@ -109,6 +149,7 @@ static void cmd_capraw(int head) {
     uint32_t words = capture_run_blocking();
     priam_read_gate(false);
     printf("capraw: ");
+    report_gating();
     report_capture(words);
 }
 
@@ -279,6 +320,12 @@ static void dispatch(char *line) {
         bool on = s && !strcmp(s, "on");
         priam_read_gate(on);
         printf("-READ GATE %s\n", on ? "asserted" : "deasserted");
+    } else if (!strcmp(cmd, "gating")) {
+        char *m  = strtok(NULL, " \t");
+        char *d  = strtok(NULL, " \t");
+        char *o  = strtok(NULL, " \t");
+        char *d2 = strtok(NULL, " \t");
+        cmd_gating(m, d, o, d2);
     } else if (!strcmp(cmd, "id")) {
         priam_command(PRIAM_CMD_READ_DRIVE_ID);
         priam_wait_not_busy(1000, NULL);

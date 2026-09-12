@@ -57,6 +57,7 @@ screen /dev/tty.usbmodem* 115200
 | `reg r <ad>` | Raw register read (ad = 0, 1, 2) |
 | `reg w <ad> <hex>` | Raw register write |
 | `stair` | Seek staircase 0, 1, 0, 2, ... 524 with address readback at every step. About 1,050 seeks, a few minutes, any key aborts |
+| `gating [off\|mark\|both] [drop_us] [data_off_us] [data_drop_us]` | Per-field -READ GATE pulses during capture. See below |
 | `reset` | Pulse -RESET for 1 ms. Not part of any normal sequence |
 
 Typical session:
@@ -120,6 +121,39 @@ guarantees a full INDEX-to-INDEX window with overlap rather than a gap.
 `../software/decode_scout.py` decodes this stream (iSBC 215 format, 512 B
 sectors).
 
+## Per-field gate re-sync
+
+-READ GATE is pulsed off and on per field during a capture, following the
+original controllers:
+
+- PRIAM OEM/Service Manual 308000-0, Figure 3-40 and Table 3-15: READ GATE is
+  asserted in the zero gap after SECTOR MARK and dropped before the next write
+  splice. READ DATA is invalid for 9 µs after each assertion (PLO sync).
+- iSBC 215 Hardware Reference Manual 121593-002, paragraphs 4-29 and 4-30:
+  RD GATE is reset by END TIME at the end of the ID field's ECC and "again
+  raised to search for the sync byte of the data field".
+
+With the gate held across a write splice the separator's output for the
+following field is unreliable and the field fails ECC.
+
+Timing for the iSBC 215 sector format (1.24 µs per byte), from the SECTOR MARK
+leading edge: ID sync byte about 22 µs, ID field end about 33 µs, data-field
+write splice about 44 µs (the 215 writes ID fields and data fields in separate
+format passes, so every sector has one), data sync byte about 68 µs.
+
+```
+gating                   show the setting (default: both 3 37 11)
+gating both 3 37 11      gate off 3 µs at each SECTOR MARK, and off from 37 to
+                         48 µs after it (spans the splice, ~18 µs of zeros left
+                         for the resync)
+gating mark [drop_us]    mark pulse only
+gating off               gate held for the whole revolution
+```
+
+Capture lines report `[gating both, N drops, mark0 +NNus]`: N is the number of
+gate pulses over the INDEX wait plus the track; `mark0` is the INDEX to first
+SECTOR MARK time (spec 44.6 ± 1.4 µs).
+
 ## Noteworthy facts
 
 - **Capture is PIO plus DMA, not CPU.** `src/capture.pio` is three
@@ -127,10 +161,11 @@ sectors).
   READ DATA bit. No local clock or sample rate exists; the drive's recovered
   clock paces everything. DMA drains the FIFO into RAM. A CPU breakpoint does
   not stop a capture.
-- **Sample on the falling clock edge.** The drive changes READ DATA on the
-  rising edge. Sampling there reads the previous bit and produces repeatable
-  errors that look like bad media (every corrupted bit is a 0 after a 1 reading
-  as 1). If captures decode almost but not quite, check this first.
+- **Sample on the falling clock edge.** READ DATA changes shortly after the
+  rising edge of READ/REF CLOCK, so a sample there lands on the transition.
+  The falling edge is mid-cell.
+- **Gate per field.** A capture with the gate held for the whole revolution
+  loses the field after each write splice. See "Per-field gate re-sync".
 - **Two cores by role.** core0 runs the register bus and USB console. core1
   runs only the capture engine and starts on the first capture, so a PIO or
   DMA problem cannot take the console down. The 1 Hz LED heartbeat stops during
