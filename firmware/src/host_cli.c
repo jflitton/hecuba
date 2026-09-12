@@ -20,7 +20,7 @@
 //   dumpb64 [n]               base64 dump of the capture buffer (host offload)
 //   pins                      status/clock/data GPIO levels + 100 ms edge counts
 //   stair                     FUN-7 seek staircase 0..524 with readback verify
-//   reset                     pulse -RESET 1 ms (drive-fault #7 if sequenced up!)
+//   reset                     pulse -RESET 1 ms
 //
 // This is a bring-up tool, not the final host protocol; HST-1 bulk track
 // offload is a later addition.
@@ -64,7 +64,7 @@ static void print_help(void) {
       "  dumpb64 [n]            base64 dump of last capture (default: all)\n"
       "  pins                   status/clock/data levels + edge counts\n"
       "  stair                  seek staircase 0..524 w/ readback verify\n"
-      "  reset                  pulse -RESET (faults a sequenced-up drive!)\n");
+      "  reset                  pulse -RESET 1 ms\n");
 }
 
 static void cmd_status(void) {
@@ -219,15 +219,16 @@ static void cmd_stair(void) {
         printf("staircase complete: cylinders 0..524 all verified\n");
 }
 
-// Pulse -RESET. Escape hatch for a wedged register bus (see U5 on the
-// schematic); NOT routine. On a sequenced-up drive this itself latches
-// DRIVE FAULT (fault condition #7); clear with Fault Reset (reg w 0 05).
+// Pulse -RESET. Escape hatch for a wedged register bus (U5); NOT routine. A
+// sequenced-up drive drops READY, sets BUSY and DRIVE FAULT, restores to
+// cylinder 0, and is READY again about 450 ms later with the fault cleared.
+// A few microseconds would do (measured down to 3 us); 1 ms is proven.
 static void cmd_reset(void) {
     gpio_put(PIN_RESET_N, 0);
     sleep_ms(1);
     gpio_put(PIN_RESET_N, 1);
-    printf("-RESET pulsed (1 ms). If sequenced up, expect DRIVE FAULT: "
-           "check `status`, clear with `reg w 0 05`.\n");
+    printf("-RESET pulsed (1 ms). A sequenced-up drive restores to cylinder 0 "
+           "and is READY again in about half a second.\n");
 }
 
 // Base64 dump for host-side analysis (edge-repeatability diffs, decode

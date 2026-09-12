@@ -179,8 +179,10 @@ SECTOR MARK time (spec 44.6 ± 1.4 µs).
 - **DRIVE FAULT is never retried.** The firmware reports it and stops.
 - **`down` can report FAIL with status `0x50` after a successful park.** The
   spindle brake outlasts the status timeout, leaving BUSY set.
-- **`reset` on a sequenced-up drive latches DRIVE FAULT.** Clear it with
-  `reg w 0 05` (Fault Reset).
+- **`reset` on a sequenced-up drive restores it to cylinder 0** and takes
+  about 450 ms to come back READY. DRIVE FAULT appears at once and the drive
+  clears it itself; a fault that persists means the restore failed. A pulse
+  of a few microseconds is enough, despite the manual's 100 ms figure.
 - **Init order.** `priam_bus_init()` is the first call in `main()`. It writes
   each pin's idle level before switching it to output, because the SDK zeroes
   the output latch on init. The reverse order drives every active-low line low
